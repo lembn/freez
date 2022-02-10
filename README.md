@@ -7,7 +7,7 @@ Create single-file executables from python scripts ony any python-running system
 ## Usage
 
 ```
-Usage: freez [OPTIONS] ENTRY
+Usage: python freez [OPTIONS] ENTRY
 
   ENTRY: The entry point script of the program being built.
 
