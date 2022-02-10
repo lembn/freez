@@ -64,7 +64,7 @@ def cli(entry: str, output: str, name: str):
             return
 
     log("Installing freez dependencies...")
-    subprocess.run(["pipenv", "install", "--skip-lock"])
+    subprocess.run(["pipenv", "install", "--skip-lock", "-r", "./requirements.txt"])
 
     shutil.copy("./Pipfile", "./.Pipfile")
     args = ["pipenv", "run", "pipreqs", "--force"]
@@ -84,7 +84,7 @@ def cli(entry: str, output: str, name: str):
     os.replace("./.Pipfile", "./Pipfile")
 
     if not name:
-        name = re.sub(r"(\w+[\\/])", "", entry)
+        name = re.sub(r"([\.\w]+[\\/])+", "", entry)
         name = re.sub("(\.py)", "", name)
     if platform.system().upper() == "WINDOWS":
         name += ".exe"
