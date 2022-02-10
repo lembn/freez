@@ -50,7 +50,7 @@ def cli(entry: str, output: str, name: str):
         subprocess.run(["pipenv", "--version"])
         log(f"Found pipenv.")
     except FileNotFoundError:
-        log(f"Failed to find pipenv.", type="WARN", colour="yello")
+        log(f"Failed to find pipenv.", type="WARN", colour="yellow")
         try:
             log("Checking pip...")
             subprocess.run(["pip3", "--version"])
