@@ -64,7 +64,8 @@ def cli(entry: str, output: str, name: str):
             return
 
     log("Installing freez dependencies...")
-    subprocess.run(["pipenv", "install", "--skip-lock", "-r", "./requirements.txt"])
+    requirements = join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+    subprocess.run(["pipenv", "install", "-r", requirements, "--skip-lock"])
 
     shutil.copy("./Pipfile", "./.Pipfile")
     args = ["pipenv", "run", "pipreqs", "--force"]
