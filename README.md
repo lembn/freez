@@ -35,7 +35,7 @@ Options:
 
 > Global installations require 'sudo' on Unix or 'Run as administrator' on Windows.
 
-`freez` should not be run from a project that is already inside a virtual environemt. For example, if you are trying to build `Downloads/project`, and `project` already has a virtual environment attatched to it, then run `freez` from `Downloads` to prevent it from interefering with the virutal environment in `project`, otherwise, it is okay to run `freez` from `project`.
+`freez` should not be run from a project that is already inside a virtual environemt. For example, if you are trying to build `Downloads/project`, and `project` already has a virtual environment attatched to it, then run `freez` from `Downloads` to prevent it from interefering with the virutal environment in `project`.
 
 ## Installation
 
