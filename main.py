@@ -25,7 +25,7 @@ def delete(path: str, _dir: bool = True):
         remove(path)
 
 @click.command()
-@click.version_option("1.2.0")
+@click.version_option("1.2.2")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -96,7 +96,6 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
         print()
         log("Dependencies installed.")
-        delete(f"./Pipfile", False)
         os.remove(requirements)
 
         if _global:
