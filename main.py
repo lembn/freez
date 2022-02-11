@@ -25,7 +25,7 @@ def delete(path: str, _dir: bool = True):
         remove(path)
 
 @click.command()
-@click.version_option("1.2.2")
+@click.version_option("1.2.3")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -98,9 +98,12 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Dependencies installed.")
         os.remove(requirements)
 
-        if _global:
-            output = join(os.path.dirname(sys.executable), "Scripts")
-        elif not os.path.exists(output):
+        # sys.executable may or may not already include "/Scripts" depending on whether
+        # freez has been globally installed
+        exe_dir = os.path.dirname(sys.executable)
+        if _global and "Scripts" not in exe_dir:
+            output = join(exe_dir, "Scripts")
+        elif not _global and not os.path.exists(output):
             os.makedirs(output)
         log(f"Building executable to {output}")
         if not name:
