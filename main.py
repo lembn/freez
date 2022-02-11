@@ -69,11 +69,8 @@ def cli(entry: str, output: str, name: str):
 
     shutil.copy("./Pipfile", "./.Pipfile")
     args = ["pipenv", "run", "pipreqs", "--force"]
-    entry_parent = os.path.dirname(entry)
-    if entry_parent:
-        args.append(entry_parent)
-    else:
-        entry_parent = "./"
+    entry_parent = os.path.dirname(os.path.abspath(entry))
+    args.append(entry_parent)
     log(f"Collecting {entry} dependencies...")
     subprocess.run(args)
     log(f"Installing {entry} dependencies...")
