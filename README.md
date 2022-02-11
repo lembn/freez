@@ -18,3 +18,11 @@ Options:
                           entry point script).
   --help                  Show this message and exit.
 ```
+
+## Roadmap
+
+- [ ] Make the program globally callable on the system (without needing to specify `python`)
+  - Add the package to sys.path
+  - Make package executable my adding a `__main__` file
+  - Add option to make packages created with this program globally callable
+- [ ] Handle fails more gracefully (perform cleanup on opened/created files and virtual environments)

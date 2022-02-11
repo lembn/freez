@@ -13,7 +13,6 @@ def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
         click.style(
             f"{type} [{datetime.now().strftime('%H:%M:%S')}]: {message}",
-            blink=True,
             bold=True,
             fg=colour,
         )
@@ -104,7 +103,7 @@ def cli(entry: str, output: str, name: str):
     subprocess.run(["pipenv", "--rm"])
 
     if remove:
-        subprocess.run(["pip3", "uninstall", "pipenv"])
+        subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
 
 
 if __name__ == "__main__":
