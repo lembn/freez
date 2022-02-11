@@ -1,2 +1,0 @@
-pipreqs==0.4
-pyinstaller==4.9
