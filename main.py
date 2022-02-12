@@ -25,7 +25,7 @@ def delete(path: str, _dir: bool = True):
         remove(path)
 
 @click.command()
-@click.version_option("1.2.4")
+@click.version_option("1.3.0")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -57,6 +57,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
     """
 
     remove_pipenv = False
+    replace_pipfile = False
 
     print()
     log("Checking required global dependency tools...")
@@ -79,6 +80,9 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
     print()
     log("Installing freez dependencies...")
+    if os.path.exists("./Pipfile"):
+        shutil.copy("./Pipfile", "./Pipfile.STORE")
+        replace_pipfile = True
     subprocess.run(["pipenv", "install", "--skip-lock", "pipreqs", "pyinstaller"])
 
     try:
@@ -98,8 +102,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Dependencies installed.")
         os.remove(requirements)
 
-        # sys.executable may or may not already include "/Scripts" depending on whether
-        # freez has been globally installed
+        # sys.executable will already include "/Scripts" if freez is running from installed executable
         exe_dir = os.path.dirname(sys.executable)
         if _global:
             output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
@@ -125,6 +128,8 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Cleaning up...")
         delete(f"./{name}.spec", False)
         delete(f"./Pipfile", False)
+        if replace_pipfile:
+            os.rename("./Pipfile.STORE", "./Pipfile")
         delete("./build")
         delete("./dist")
         pycache = "__pycache__"

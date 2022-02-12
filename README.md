@@ -35,8 +35,6 @@ Options:
 
 > Global installations require 'sudo' on Unix or 'Run as administrator' on Windows.
 
-`freez` should not be run from a project that is already inside a virtual environemt. For example, if you are trying to build `Downloads/project`, and `project` already has a virtual environment attatched to it, then run `freez` from `Downloads` to prevent it from interefering with the virutal environment in `project`.
-
 ## Installation
 
 Since `freez` is a python program, it can actually be used to install itself globally across the system:
@@ -45,7 +43,7 @@ Since `freez` is a python program, it can actually be used to install itself glo
 > cd freez
 > python main.py -g -n freez main.py
 > freez --version
-freez, version 1.2.0
+freez, version 1.3.0
 ```
 
 This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system.
