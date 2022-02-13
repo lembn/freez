@@ -25,7 +25,7 @@ def delete(path: str, _dir: bool = True):
         remove(path)
 
 @click.command()
-@click.version_option("1.3.3")
+@click.version_option("1.3.4")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -144,7 +144,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         if remove_pipenv:
             log("Removing pipenv")
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
-        log("Build successful.", color="green")
+        log("Build successful.", colour="green")
 
 if __name__ == "__main__":
     cli(prog_name="freez")
