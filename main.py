@@ -25,7 +25,7 @@ def delete(path: str, _dir: bool = True):
         remove(path)
 
 @click.command()
-@click.version_option("1.3.0")
+@click.version_option("1.3.1")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -128,16 +128,17 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Cleaning up...")
         delete(f"./{name}.spec", False)
         delete(f"./Pipfile", False)
-        if replace_pipfile:
-            os.rename("./Pipfile.STORE", "./Pipfile")
         delete("./build")
         delete("./dist")
         pycache = "__pycache__"
         delete(pycache)
         entry_pycache = join(entry_parent, pycache)
         delete(entry_pycache)
+        if replace_pipfile:
+            os.rename("./Pipfile.STORE", "./Pipfile")
+            subprocess.run(["pipenv", "--rm"])
+            subprocess.run(["pipenv", "install"])
         log("Artefacts removed.")
-        subprocess.run(["pipenv", "--rm"])
         if remove_pipenv:
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
 
