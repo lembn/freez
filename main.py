@@ -136,9 +136,9 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         delete(entry_pycache)
         if replace_pipfile:
             subprocess.run(["pipenv", "--rm"])
-            log("Reconstructing original virutal environment...")
-            subprocess.run(["pipenv", "install"])
+            log("Reconstructing original virtual environment...")
             os.rename("./Pipfile.STORE", "./Pipfile")
+            subprocess.run(["pipenv", "install"])
             log("Environment restored.")
         log("Artefacts removed.")
         if remove_pipenv:
