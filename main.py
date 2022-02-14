@@ -126,7 +126,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             exe_dir = os.path.dirname(sys.executable)
             if platform.system() == "Windows":
                 output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
-                # ShellExeucte runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
+                # ShellExecute runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
                 ctypes.windll.shell32.ShellExecuteW(
                     None,
                     "runas",
@@ -135,8 +135,8 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                     None,
                     1,
                 )
-
-                while not os.path.exists(join(output, name)):
+                exe = join(output, name)
+                while not os.path.exists(exe):
                     sleep(0.2)
             else:
                 subprocess.call(
