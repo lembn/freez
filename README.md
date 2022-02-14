@@ -12,6 +12,7 @@ PyInstaller will fail if you try to build a program that uses external dependenc
 
 - Python >= 3.6
 - Pip must be in the system `PATH`
+- \*MacOS **only\***: Comamnd Line tools for Mac
 
 ## Usage
 
@@ -33,7 +34,7 @@ Options:
   --help                  Show this message and exit.
 ```
 
-> Global installations require 'sudo' on Unix or 'Run as administrator' on Windows.
+> Global installations require 'sudo' on Unix.
 
 ## Installation
 

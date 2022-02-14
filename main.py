@@ -123,8 +123,8 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             print()
             log("Installing...")
             exe_dir = os.path.dirname(sys.executable)
-            output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
             if platform.system() == "Windows":
+                output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
                 args = ["/Y", winpath(f'./dist/{name}'), winpath(join(output, name))]
                 for arg in args:
                     print(arg)
@@ -142,7 +142,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                         "/usr/bin/sudo",
                         "mv",
                         os.path.abspath(f"./dist/{name}"),
-                        os.path.abspath(join(output, name)),
+                        os.path.abspath(join(exe_dir, name)),
                     ]
                 )
         else:
