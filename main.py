@@ -5,12 +5,13 @@ import os
 import shutil
 import platform
 import sys
+from time import sleep
 from typing import Callable
 from datetime import datetime
 import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
-winpath: Callable[[str], str] = lambda x: '"' + os.path.abspath(x).replace("/", "\\") + '"'
+winpath: Callable[[str], str] = lambda x: '"' + os.path.abspath(x) + '"'
 
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
@@ -125,17 +126,18 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             exe_dir = os.path.dirname(sys.executable)
             if platform.system() == "Windows":
                 output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
-                args = ["/Y", winpath(f'./dist/{name}'), winpath(join(output, name))]
-                for arg in args:
-                    print(arg)
+                # ShellExeucte runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
                 ctypes.windll.shell32.ShellExecuteW(
                     None,
                     "runas",
-                    "move",
-                    " ".join(args),
+                    "robocopy",
+                    f'{winpath("./dist")} {winpath(output)} {name}',
                     None,
                     1,
                 )
+
+                while not os.path.exists(join(output, name)):
+                    sleep(0.2)
             else:
                 subprocess.call(
                     [
@@ -149,12 +151,14 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             if not os.path.exists(output):
                 os.makedirs(output)
             shutil.move(f"./dist/{name}", join(output, name))
+        log("Installed.")
     except KeyboardInterrupt:
         print()
         log("Aborted!")
     finally:
         print()
         log("Cleaning up...")
+        delete(f"./requirements.txt", False)
         delete(f"./{name}.spec", False)
         delete(f"./Pipfile", False)
         delete("./build")
@@ -172,7 +176,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Artefacts removed.")
         if remove_pipenv:
             log("Removing pipenv")
-            subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
+            subprocess.run(["pip3", "uninstall", "-y", "-d", "pipenv"])
         log("Build successful.", colour="green")
 
 
