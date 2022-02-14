@@ -558,4 +558,5 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudio
 
 .vscode
+Pipfile
 Pipfile.lock

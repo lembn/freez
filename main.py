@@ -1,3 +1,4 @@
+import ctypes
 import re
 import subprocess
 import os
@@ -9,6 +10,8 @@ from datetime import datetime
 import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
+winpath: Callable[[str], str] = lambda x: '"' + os.path.abspath(x).replace("/", "\\") + '"'
+
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
@@ -19,18 +22,20 @@ def log(message: str, type: str = "INFO", colour: str = "white") -> None:
         )
     )
 
+
 def delete(path: str, _dir: bool = True):
     remove = shutil.rmtree if _dir else os.remove
-    if (os.path.exists(path)):
+    if os.path.exists(path):
         remove(path)
 
+
 @click.command()
-@click.version_option("1.3.5")
+@click.version_option("1.4.0")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
     "--output",
-    default="./",
+    default=".",
     show_default=True,
     type=click.Path(exists=True, file_okay=False),
     help="Output folder of the built executable.",
@@ -45,7 +50,7 @@ def delete(path: str, _dir: bool = True):
     "-g",
     "--global",
     "_global",
-    is_flag = True,
+    is_flag=True,
     help="Install the executable into the python script path to make it globally accessible across the system (this will ignore the path set by --output).",
 )
 def cli(entry: str, output: str, name: str, _global: bool) -> None:
@@ -78,14 +83,14 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             log("Unable to install requried dependencies\nAborting...")
             return
 
-    print()
-    log("Installing freez dependencies...")
-    if os.path.exists("./Pipfile"):
-        shutil.copy("./Pipfile", "./Pipfile.STORE")
-        replace_pipfile = True
-    subprocess.run(["pipenv", "install", "--skip-lock", "pipreqs", "pyinstaller"])
-
     try:
+        print()
+        log("Installing freez dependencies...")
+        if os.path.exists("./Pipfile"):
+            shutil.copy("./Pipfile", "./Pipfile.STORE")
+            replace_pipfile = True
+        subprocess.run(["pipenv", "install", "--skip-lock", "pipreqs", "pyinstaller"])
+
         print()
         log(f"Collecting {entry} dependencies...")
         args = ["pipenv", "run", "pipreqs", "--force"]
@@ -102,24 +107,48 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Dependencies installed.")
         os.remove(requirements)
 
-        # sys.executable will already include "/Scripts" if freez is running from installed executable
-        exe_dir = os.path.dirname(sys.executable)
-        if _global:
-            output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
-        elif not os.path.exists(output):
-            os.makedirs(output)
-        log(f"Building executable to {output}")
+        scope = "globally" if _global else "locally"
+        log(f"Building executable {scope}.")
         if not name:
             name = re.sub(r"([\.\w]+[\\/])+", "", entry)
             name = re.sub("(\.py)", "", name)
         if platform.system().upper() == "WINDOWS":
             name += ".exe"
-        subprocess.run(["pipenv", "run", "pyinstaller", entry, "--onefile", "--name", name])
-        shutil.move(f"./dist/{name}", join(output, name))
-    except PermissionError as e:
-        print()
-        log(e, type="ERROR", colour="red")
-        log("Global installations require 'sudo' on Unix or 'Run as administrator' on Windows")
+        subprocess.run(
+            ["pipenv", "run", "pyinstaller", entry, "--onefile", "--name", name]
+        )
+
+        # sys.executable will already include "/Scripts" if freez is running from installed executable so we check
+        if _global:
+            print()
+            log("Installing...")
+            exe_dir = os.path.dirname(sys.executable)
+            output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
+            if platform.system() == "Windows":
+                args = ["/Y", winpath(f'./dist/{name}'), winpath(join(output, name))]
+                for arg in args:
+                    print(arg)
+                ctypes.windll.shell32.ShellExecuteW(
+                    None,
+                    "runas",
+                    "move",
+                    " ".join(args),
+                    None,
+                    1,
+                )
+            else:
+                subprocess.call(
+                    [
+                        "/usr/bin/sudo",
+                        "mv",
+                        os.path.abspath(f"./dist/{name}"),
+                        os.path.abspath(join(output, name)),
+                    ]
+                )
+        else:
+            if not os.path.exists(output):
+                os.makedirs(output)
+            shutil.move(f"./dist/{name}", join(output, name))
     except KeyboardInterrupt:
         print()
         log("Aborted!")
@@ -145,6 +174,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             log("Removing pipenv")
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
+
 
 if __name__ == "__main__":
     cli(prog_name="freez")
