@@ -171,12 +171,12 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             subprocess.run(["pipenv", "--rm"])
             log("Reconstructing original virtual environment...")
             os.rename("./Pipfile.STORE", "./Pipfile")
-            subprocess.run(["pipenv", "install"])
+            subprocess.run(["pipenv", "install", "-d"])
             log("Environment restored.")
         log("Artefacts removed.")
         if remove_pipenv:
             log("Removing pipenv")
-            subprocess.run(["pip3", "uninstall", "-y", "-d", "pipenv"])
+            subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
 
 
