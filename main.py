@@ -106,7 +106,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
         print()
         log("Dependencies installed.")
-        delete(requirements)
+        delete(requirements, False)
 
         scope = "globally" if _global else "locally"
         log(f"Building executable {scope}.")
