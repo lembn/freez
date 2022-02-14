@@ -31,7 +31,7 @@ def delete(path: str, _dir: bool = True):
 
 
 @click.command()
-@click.version_option("1.4.0")
+@click.version_option("1.4.2")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -106,7 +106,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
         print()
         log("Dependencies installed.")
-        os.remove(requirements)
+        delete(requirements)
 
         scope = "globally" if _global else "locally"
         log(f"Building executable {scope}.")
