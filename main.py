@@ -11,8 +11,8 @@ from datetime import datetime
 import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
-winpath: Callable[[str], str] = lambda x: '"' + os.path.abspath(x) + '"'
-
+join3: Callable[[str, str, str], str] = lambda x, y, z: join(join(x, y), z)
+winpath: Callable[[str], str] = lambda x: '"' + x.replace("/", "\\") + '"'
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
@@ -31,7 +31,7 @@ def delete(path: str, _dir: bool = True):
 
 
 @click.command()
-@click.version_option("1.4.5")
+@click.version_option("1.4.6")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -39,13 +39,13 @@ def delete(path: str, _dir: bool = True):
     default=".",
     show_default=True,
     type=click.Path(exists=True, file_okay=False),
-    help="Output folder of the built executable.",
+    help="Output folder of the executable bundle.",
 )
 @click.option(
     "-n",
     "--name",
     type=click.STRING,
-    help="Name of the built executable (defaults to name of entry point script).",
+    help="Name of the executable bundle (defaults to name of entry point script).",
 )
 @click.option(
     "-g",
@@ -108,73 +108,87 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         log("Dependencies installed.")
         delete(requirements, False)
 
-        scope = "globally" if _global else "locally"
-        log(f"Building executable {scope}.")
+        scope = "global" if _global else "local"
+        log(f"Building {scope} executable to '{output}'.")
         if not name:
             name = re.sub(r"([\.\w]+[\\/])+", "", entry)
             name = re.sub("(\.py)", "", name)
-        if platform.system().upper() == "WINDOWS":
-            name += ".exe"
         subprocess.run(
-            ["pipenv", "run", "pyinstaller", entry, "--onefile", "--name", name]
+            [
+                "pipenv",
+                "run",
+                "pyinstaller",
+                "--distpath",
+                output,
+                "--name",
+                name,
+                entry,
+            ]
         )
 
         # sys.executable will already include "/Scripts" if freez is running from installed executable so we check
         if _global:
             print()
             log("Installing...")
-            exe_dir = os.path.dirname(sys.executable)
+            install = join(os.path.dirname(os.path.abspath(__file__)), "install.py")
             if platform.system() == "Windows":
-                output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
-                exe = join(output, name)
-                exists = os.path.exists(exe)
+                exe = f"{name}.exe"
+                source = os.path.abspath(join3(output, name, exe))
+                dest_dir = (
+                    os.path.dirname(sys.executable)
+                    if "Scripts" in sys.executable
+                    else join(os.path.dirname(sys.executable), "Scripts")
+                )
+                dest = join(dest_dir, exe)
+                exists = os.path.exists(dest)
                 if exists:
-                    ctime = float(os.path.getctime(exe))
-                # ShellExecute runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
+                    ctime = float(os.path.getctime(dest))
+                args = f"{winpath(install)} {winpath(source)} {winpath(dest)}"
+                print(args)
                 ctypes.windll.shell32.ShellExecuteW(
                     None,
                     "runas",
-                    "robocopy",
-                    f'{winpath("./dist")} {winpath(output)} {name}',
+                    "python",
+                    args,
                     None,
-                    1,
+                    0,
                 )
-                # wait for robocopy to complete. we can't just check for file existence becuase if the executable is being overwrittern it will already exist
+                # wait for installation to complete. we can't just check for file existence becuase if the executable is being overwrittern it will already exist
                 if exists:
-                    wait = lambda: float(os.path.getctime(exe)) == ctime
+                    wait = lambda: float(os.path.getctime(dest)) == ctime
                 else:
-                    wait = lambda: not os.path.isfile(exe)
+                    wait = lambda: not os.path.isfile(dest)
                 while wait():
                     sleep(0.2)
             else:
+                source = os.path.abspath(join(output, name))
+                dest = join(os.path.dirname(sys.executable), name)
                 subprocess.call(
                     [
                         "/usr/bin/sudo",
-                        "mv",
-                        os.path.abspath(f"./dist/{name}"),
-                        os.path.abspath(join(exe_dir, name)),
+                        "python3",
+                        install,
+                        source,
+                        dest,
                     ]
                 )
-        else:
-            if not os.path.exists(output):
-                os.makedirs(output)
-            shutil.move(f"./dist/{name}", join(output, name))
         log("Installed.")
     except KeyboardInterrupt:
         print()
-        log("Aborted!")
+        log("Stopped.")
     finally:
         print()
         log("Cleaning up...")
-        delete(f"./requirements.txt", False)
-        delete(f"./{name}.spec", False)
-        delete(f"./Pipfile", False)
+        delete("./requirements.txt", False)
+        delete("./{name}.spec", False)
+        delete("./Pipfile", False)
         delete("./build")
         delete("./dist")
         pycache = "__pycache__"
         delete(pycache)
-        entry_pycache = join(entry_parent, pycache)
-        delete(entry_pycache)
+        if entry_parent:
+            entry_pycache = join(entry_parent, pycache)
+            delete(entry_pycache)
         if replace_pipfile:
             subprocess.run(["pipenv", "--rm"])
             log("Reconstructing original virtual environment...")
@@ -186,6 +200,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             log("Removing pipenv")
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
+
 
 if __name__ == "__main__":
     cli(prog_name="freez")
