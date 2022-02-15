@@ -187,6 +187,5 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
 
-
 if __name__ == "__main__":
     cli(prog_name="freez")
