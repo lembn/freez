@@ -31,7 +31,7 @@ def delete(path: str, _dir: bool = True):
 
 
 @click.command()
-@click.version_option("1.4.4")
+@click.version_option("1.4.5")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -135,7 +135,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                     None,
                     "runas",
                     "robocopy",
-                    f'{winpath("./dist")} {winpath(output)} {name} /log:E:\\Workspace\\Home\\Programming\\Projects\\freez\\log.txt',
+                    f'{winpath("./dist")} {winpath(output)} {name}',
                     None,
                     1,
                 )
