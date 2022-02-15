@@ -31,7 +31,7 @@ def delete(path: str, _dir: bool = True):
 
 
 @click.command()
-@click.version_option("1.4.2")
+@click.version_option("1.4.3")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -126,17 +126,25 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             exe_dir = os.path.dirname(sys.executable)
             if platform.system() == "Windows":
                 output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
+                exe = join(output, name)
+                exists = os.path.exists(exe)
+                if exists:
+                    ctime = float(os.path.getctime(exe))
                 # ShellExecute runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
                 ctypes.windll.shell32.ShellExecuteW(
                     None,
                     "runas",
                     "robocopy",
-                    f'{winpath("./dist")} {winpath(output)} {name}',
+                    f'{winpath("./dist")} {winpath(output)} {name} /log:E:\\Workspace\\Home\\Programming\\Projects\\freez\\log.txt',
                     None,
                     1,
                 )
-                exe = join(output, name)
-                while not os.path.exists(exe):
+                # wait for robocopy to complete. we can't just check for file existence becuase if the executable is being overwrittern it will already exist
+                if exists:
+                    wait = lambda: float(os.path.getctime(exe)) == ctime
+                else:
+                    wait = lambda: not os.path.isfile(exe)
+                while wait():
                     sleep(0.2)
             else:
                 subprocess.call(
