@@ -48,3 +48,7 @@ freez, version 1.4.0
 ```
 
 This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system.
+
+## TODO:
+
+- How to download the source code from repo
