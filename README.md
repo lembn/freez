@@ -44,7 +44,7 @@ Since `freez` is a python program, it can actually be used to install itself glo
 > cd freez
 > python main.py -g -n freez main.py
 > freez --version
-freez, version 1.3.0
+freez, version 1.4.0
 ```
 
 This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system.
