@@ -58,7 +58,11 @@ At the moment, when executables are built the executable and all of it's depende
 
 Some theoretical solutions are:
 
-- If PyInstaller had an option to generate an executable file outside of it's dependecies folder, so that both can be present in `/Scripts` but btut the dependencies are in their own subdirectory.
-  - Shortcuts (_not symlinks_)
-  - http://unafaltadecomprension.blogspot.com/2014/07/pyinstaller-separating-executable-from.html
+- If PyInstaller had an option to generate an executable file outside of it's dependecies folder, so that both can be present in `/Scripts` but but the dependencies are in their own subdirectory.
+  - Shortcuts (_not symlinks_) - this works, but Linux doesn't have shortcuts
+  - http://unafaltadecomprension.blogspot.com/2014/07/pyinstaller-separating-executable-from.html - This fails to put all the dependencies into one directory, sometimes parts need to be left out
 - Find some way to write to the system PATH, so that the bundle can be stored anywhere
+  - **Windows**:
+    - [Python](https://docs.python.org/3/library/winreg.html)
+    - [Powershell](https://stackoverflow.com/questions/2121795/programmatically-modifiy-environment-variables)
+  - [**Unix**](https://stackoverflow.com/a/26962251)
