@@ -21,16 +21,18 @@ reg_key = "Environment"
 reg_subkey = "Path"
 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
     reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
-    if {SRC_KEY} in reg_val:
-        reg_val = reg_val.replace({SRC_KEY};, "")
+    if '{SRC_KEY}' in reg_val:
+        reg_val = reg_val.replace('{SRC_KEY};', "")
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
             winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+print("Uninstalled.")
 """
 
 UNIX_UNINSTALLER_SCRIPT = f"""\
 import os
 if os.path.exists({SRC_KEY})
     os.remove({SRC_KEY})
+print("Uninstalled.")
 """
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
@@ -43,14 +45,14 @@ def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     )
 
 
-def delete(path: str, _dir: bool = True):
-    remove = shutil.rmtree if _dir else os.remove
+def delete(path: str, file: bool = True):
+    remove = os.remove if file else shutil.rmtree
     if os.path.exists(path):
         remove(path)
 
 
 @click.command()
-@click.version_option("1.5.0")
+@click.version_option("1.5.1")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -125,7 +127,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
         print()
         log("Dependencies installed.")
-        delete(requirements, False)
+        delete(requirements)
 
         scope = "global" if _global else "local"
         log(f"Building {scope} executable to '{output}'.")
@@ -163,11 +165,11 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                 with open(f"etc/profile.d/{name}.sh", "w") as f:
                     f.write(f"$PATH:{source}")
             log("Installed.")
-            print()
             log("Creating uninstaller...")
+            print()
             uninstaller_path = join(output, f"{name}-uninstaller.py")
-            with open(f"etc/profile.d/{name}.sh", "w") as f:
-                    f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, source)
+            with open(uninstaller_path, "w") as f:
+                    f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, winpath(source))
                             if platform.system() == WINDOWS
                             else UNIX_UNINSTALLER_SCRIPT.replace(SRC_KEY, source))
             subprocess.run(
@@ -177,11 +179,12 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                     "pyinstaller",
                     "--onefile",
                     "--distpath",
-                    output,
+                    join(output, name),
                     uninstaller_path,
                 ]
             )
             log("Uninstaller build successful.")
+            log("Installation complete.")
         else:
             log("Installed.")
 
@@ -191,15 +194,18 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
     finally:
         print()
         log("Cleaning up...")
-        delete("./requirements.txt", False)
-        delete(f"./{name}.spec", False)
-        delete("./Pipfile", False)
-        delete("./build")
+        delete("./requirements.txt")
+        delete(f"./{name}.spec")
+        delete("./Pipfile")
+        delete("./build", False)
         pycache = "__pycache__"
         delete(pycache)
+        if _global:
+            delete(uninstaller_path)
+            delete(uninstaller_path.replace(".py", ".spec"))
         if entry_parent:
             entry_pycache = join(entry_parent, pycache)
-            delete(entry_pycache)
+            delete(entry_pycache, False)
         if replace_pipfile:
             subprocess.run(["pipenv", "--rm"])
             log("Reconstructing original virtual environment...")
