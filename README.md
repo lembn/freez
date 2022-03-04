@@ -51,4 +51,4 @@ This builds `freez` as an executable, meaning it can be run without invoking `py
 
 ## TODO:
 
-- add uninstall option
+- test uninstaller

@@ -1,11 +1,8 @@
-import ctypes
 import re
 import subprocess
 import os
 import shutil
 import platform
-import sys
-from time import sleep
 from typing import Callable
 from datetime import datetime
 import winreg
@@ -16,6 +13,25 @@ join3: Callable[[str, str, str], str] = lambda x, y, z: join(join(x, y), z)
 winpath: Callable[[str], str] = lambda x: '"' + x.replace("/", "\\") + '"'
 
 WINDOWS = "Windows"
+
+SRC_KEY = "__SOURCE__"
+WIN_UNINSTALLER_SCRIPT = f"""\
+import winreg
+reg_key = "Environment"
+reg_subkey = "Path"
+with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
+    reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
+    if {SRC_KEY} in reg_val:
+        reg_val = reg_val.replace({SRC_KEY};, "")
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
+            winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+"""
+
+UNIX_UNINSTALLER_SCRIPT = f"""\
+import os
+if os.path.exists({SRC_KEY})
+    os.remove({SRC_KEY})
+"""
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
@@ -146,7 +162,29 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             else:
                 with open(f"etc/profile.d/{name}.sh", "w") as f:
                     f.write(f"$PATH:{source}")
-        log("Installed.")
+            log("Installed.")
+            print()
+            log("Creating uninstaller...")
+            uninstaller_path = join(output, f"{name}-uninstaller.py")
+            with open(f"etc/profile.d/{name}.sh", "w") as f:
+                    f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, source)
+                            if platform.system() == WINDOWS
+                            else UNIX_UNINSTALLER_SCRIPT.replace(SRC_KEY, source))
+            subprocess.run(
+                [
+                    "pipenv",
+                    "run",
+                    "pyinstaller",
+                    "--onefile",
+                    "--distpath",
+                    output,
+                    uninstaller_path,
+                ]
+            )
+            log("Uninstaller build successful.")
+        else:
+            log("Installed.")
+
     except KeyboardInterrupt:
         print()
         log("Stopped.")
