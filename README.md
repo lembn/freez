@@ -49,20 +49,6 @@ freez, version 1.4.0
 
 This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system.
 
-# Roadmap
+## TODO:
 
-At the moment, when executables are built the executable and all of it's dependencies get bundled into a single file. On execution, PyInstaller bootloader has to decompressed the bundled dependencies and on some OSs the dependencies get scanned for security reasons. This makes the launch of the programs quite slow. The soltion to this is to run PyInstaller in `--onedir` mode, so that the dependencies aren't bundled into the executable file. This bundles the executable into a directory, but for global installations this means that the actual executable file itself isn't in the `/Scripts` directory, it's in a subdirectory of the directory so won't get picked up in PATH. The two obvious solutions to this problem are to:
-
-1. Move the bundle out of the subdirectory and back into the `/Scripts` directory. While this would solve the issue, this bundle contains lots of files which can heavily overpopulate whatever directory the moved into, furthermore, if two executables are built, their dependencies may overwrite each other if they have different versions but the same name.
-2. Use a symbolic link to the executable file in the `/Scripts` directory, then store the actual bundle elsewhere. This solution doesn't work because the PyInstaller bootloader loads dependencies relative to the executable file's location, and since the symbolic link is away from the dependencies, it fails to load.
-
-Some theoretical solutions are:
-
-- If PyInstaller had an option to generate an executable file outside of it's dependecies folder, so that both can be present in `/Scripts` but but the dependencies are in their own subdirectory.
-  - Shortcuts (_not symlinks_) - this works, but Linux doesn't have shortcuts
-  - http://unafaltadecomprension.blogspot.com/2014/07/pyinstaller-separating-executable-from.html - This fails to put all the dependencies into one directory, sometimes parts need to be left out
-- Find some way to write to the system PATH, so that the bundle can be stored anywhere
-  - **Windows**:
-    - [Python](https://docs.python.org/3/library/winreg.html)
-    - [Powershell](https://stackoverflow.com/questions/2121795/programmatically-modifiy-environment-variables)
-  - [**Unix**](https://stackoverflow.com/a/26962251)
+- add uninstall option

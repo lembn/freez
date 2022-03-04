@@ -8,11 +8,14 @@ import sys
 from time import sleep
 from typing import Callable
 from datetime import datetime
+import winreg
 import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
 join3: Callable[[str, str, str], str] = lambda x, y, z: join(join(x, y), z)
 winpath: Callable[[str], str] = lambda x: '"' + x.replace("/", "\\") + '"'
+
+WINDOWS = "Windows"
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
@@ -31,7 +34,7 @@ def delete(path: str, _dir: bool = True):
 
 
 @click.command()
-@click.version_option("1.4.6")
+@click.version_option("1.5.0")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -118,6 +121,7 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                 "pipenv",
                 "run",
                 "pyinstaller",
+                "--onedir",
                 "--distpath",
                 output,
                 "--name",
@@ -126,52 +130,22 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             ]
         )
 
-        # sys.executable will already include "/Scripts" if freez is running from installed executable so we check
         if _global:
             print()
             log("Installing...")
-            install = join(os.path.dirname(os.path.abspath(__file__)), "install.py")
-            if platform.system() == "Windows":
-                exe = f"{name}.exe"
-                source = os.path.abspath(join3(output, name, exe))
-                dest_dir = (
-                    os.path.dirname(sys.executable)
-                    if "Scripts" in sys.executable
-                    else join(os.path.dirname(sys.executable), "Scripts")
-                )
-                dest = join(dest_dir, exe)
-                exists = os.path.exists(dest)
-                if exists:
-                    ctime = float(os.path.getctime(dest))
-                args = f"{winpath(install)} {winpath(source)} {winpath(dest)}"
-                print(args)
-                ctypes.windll.shell32.ShellExecuteW(
-                    None,
-                    "runas",
-                    "python",
-                    args,
-                    None,
-                    0,
-                )
-                # wait for installation to complete. we can't just check for file existence becuase if the executable is being overwrittern it will already exist
-                if exists:
-                    wait = lambda: float(os.path.getctime(dest)) == ctime
-                else:
-                    wait = lambda: not os.path.isfile(dest)
-                while wait():
-                    sleep(0.2)
+            source = os.path.abspath(join(output, name))
+            if platform.system() == WINDOWS:
+                reg_key = "Environment"
+                reg_subkey = "Path"
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
+                    reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
+                    if source not in reg_val:
+                        reg_val += winpath(source) + ";"
+                        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
+                            winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
             else:
-                source = os.path.abspath(join(output, name))
-                dest = join(os.path.dirname(sys.executable), name)
-                subprocess.call(
-                    [
-                        "/usr/bin/sudo",
-                        "python3",
-                        install,
-                        source,
-                        dest,
-                    ]
-                )
+                with open(f"etc/profile.d/{name}.sh", "w") as f:
+                    f.write(f"$PATH:{source}")
         log("Installed.")
     except KeyboardInterrupt:
         print()
@@ -180,10 +154,9 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
         print()
         log("Cleaning up...")
         delete("./requirements.txt", False)
-        delete("./{name}.spec", False)
+        delete(f"./{name}.spec", False)
         delete("./Pipfile", False)
         delete("./build")
-        delete("./dist")
         pycache = "__pycache__"
         delete(pycache)
         if entry_parent:
