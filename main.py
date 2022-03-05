@@ -4,15 +4,43 @@ import subprocess
 import os
 import shutil
 import platform
-import sys
-from time import sleep
 from typing import Callable
 from datetime import datetime
+import winreg
 import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
-winpath: Callable[[str], str] = lambda x: '"' + os.path.abspath(x) + '"'
+join3: Callable[[str, str, str], str] = lambda x, y, z: join(join(x, y), z)
+winpath: Callable[[str], str] = lambda x: '"' + x.replace("/", "\\") + '"'
 
+WINDOWS = "Windows"
+
+SRC_KEY = "__SOURCE__"
+WIN_UNINSTALLER_SCRIPT = f"""\
+import winreg
+import ctypes
+reg_key = "Environment"
+reg_subkey = "Path"
+with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
+    reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
+    if '{SRC_KEY}' in reg_val:
+        reg_val = reg_val.replace('{SRC_KEY}', "")
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
+            winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+HWND_BROADCAST = 0xFFFF
+WM_SETTINGCHANGE = 0x1A
+SMTO_ABORTIFHUNG = 0x0002
+result = ctypes.c_long()
+ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, u"Environment", SMTO_ABORTIFHUNG, 5000, ctypes.byref(result),)
+print("Uninstalled.")
+"""
+
+UNIX_UNINSTALLER_SCRIPT = f"""\
+import os
+if os.path.exists({SRC_KEY})
+    os.remove({SRC_KEY})
+print("Uninstalled.")
+"""
 
 def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     click.echo(
@@ -24,14 +52,14 @@ def log(message: str, type: str = "INFO", colour: str = "white") -> None:
     )
 
 
-def delete(path: str, _dir: bool = True):
-    remove = shutil.rmtree if _dir else os.remove
+def delete(path: str, file: bool = True):
+    remove = os.remove if file else shutil.rmtree
     if os.path.exists(path):
         remove(path)
 
 
 @click.command()
-@click.version_option("1.4.5")
+@click.version_option("1.5.2")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -39,13 +67,13 @@ def delete(path: str, _dir: bool = True):
     default=".",
     show_default=True,
     type=click.Path(exists=True, file_okay=False),
-    help="Output folder of the built executable.",
+    help="Output folder of the executable bundle.",
 )
 @click.option(
     "-n",
     "--name",
     type=click.STRING,
-    help="Name of the built executable (defaults to name of entry point script).",
+    help="Name of the executable bundle (defaults to name of entry point script).",
 )
 @click.option(
     "-g",
@@ -56,7 +84,8 @@ def delete(path: str, _dir: bool = True):
 )
 def cli(entry: str, output: str, name: str, _global: bool) -> None:
     """
-    Create single-file executables from python scripts.
+    Create single-file executables from python scripts. Intergrated terminals
+    in certain programs may have to be restarted for changes to take effect.
 
     \b
     ENTRY: The entry point script of the program being built.
@@ -106,75 +135,92 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
 
         print()
         log("Dependencies installed.")
-        delete(requirements, False)
+        delete(requirements)
 
-        scope = "globally" if _global else "locally"
-        log(f"Building executable {scope}.")
+        scope = "global" if _global else "local"
+        log(f"Building {scope} executable to '{output}'.")
         if not name:
             name = re.sub(r"([\.\w]+[\\/])+", "", entry)
             name = re.sub("(\.py)", "", name)
-        if platform.system().upper() == "WINDOWS":
-            name += ".exe"
         subprocess.run(
-            ["pipenv", "run", "pyinstaller", entry, "--onefile", "--name", name]
+            [
+                "pipenv",
+                "run",
+                "pyinstaller",
+                "--onedir",
+                "--distpath",
+                output,
+                "--name",
+                name,
+                entry,
+            ]
         )
 
-        # sys.executable will already include "/Scripts" if freez is running from installed executable so we check
         if _global:
             print()
             log("Installing...")
-            exe_dir = os.path.dirname(sys.executable)
-            if platform.system() == "Windows":
-                output = exe_dir if "Scripts" in exe_dir else join(exe_dir, "Scripts")
-                exe = join(output, name)
-                exists = os.path.exists(exe)
-                if exists:
-                    ctime = float(os.path.getctime(exe))
-                # ShellExecute runs executables and the Windows `move` and `copy` commands aren't actual executables so can't be used
-                ctypes.windll.shell32.ShellExecuteW(
-                    None,
-                    "runas",
-                    "robocopy",
-                    f'{winpath("./dist")} {winpath(output)} {name}',
-                    None,
-                    1,
-                )
-                # wait for robocopy to complete. we can't just check for file existence becuase if the executable is being overwrittern it will already exist
-                if exists:
-                    wait = lambda: float(os.path.getctime(exe)) == ctime
-                else:
-                    wait = lambda: not os.path.isfile(exe)
-                while wait():
-                    sleep(0.2)
+            source = os.path.abspath(join(output, name))
+            if platform.system() == WINDOWS:
+                reg_key = "Environment"
+                reg_subkey = "Path"
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
+                    reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
+                    source = winpath(source) + ";"
+                    if source in reg_val:
+                        reg_val = reg_val.replace(source, "")
+                    reg_val += source
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
+                        winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+                HWND_BROADCAST = 0xFFFF
+                WM_SETTINGCHANGE = 0x1A
+                SMTO_ABORTIFHUNG = 0x0002
+                result = ctypes.c_long()
+                ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, u"Environment", SMTO_ABORTIFHUNG, 5000, ctypes.byref(result),)
             else:
-                subprocess.call(
-                    [
-                        "/usr/bin/sudo",
-                        "mv",
-                        os.path.abspath(f"./dist/{name}"),
-                        os.path.abspath(join(exe_dir, name)),
-                    ]
-                )
+                with open(f"etc/profile.d/{name}.sh", "w") as f:
+                    f.write(f"$PATH:{source}")
+            log("Installed.")
+            log("Creating uninstaller...")
+            print()
+            uninstaller_path = join(output, f"{name}-uninstall.py")
+            with open(uninstaller_path, "w") as f:
+                f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, source.replace("\\", "\\\\"))
+                    if platform.system() == WINDOWS
+                    else UNIX_UNINSTALLER_SCRIPT.replace(SRC_KEY, source))
+            subprocess.run(
+                [
+                    "pipenv",
+                    "run",
+                    "pyinstaller",
+                    "--onefile",
+                    "--distpath",
+                    join(output, name),
+                    uninstaller_path,
+                ]
+            )
+            log("Uninstaller build successful.")
+            log("Installation complete.")
         else:
-            if not os.path.exists(output):
-                os.makedirs(output)
-            shutil.move(f"./dist/{name}", join(output, name))
-        log("Installed.")
+            log("Installed.")
+
     except KeyboardInterrupt:
         print()
-        log("Aborted!")
+        log("Stopped.")
     finally:
         print()
         log("Cleaning up...")
-        delete(f"./requirements.txt", False)
-        delete(f"./{name}.spec", False)
-        delete(f"./Pipfile", False)
-        delete("./build")
-        delete("./dist")
+        delete("./requirements.txt")
+        delete(f"./{name}.spec")
+        delete("./Pipfile")
+        delete("./build", False)
         pycache = "__pycache__"
         delete(pycache)
-        entry_pycache = join(entry_parent, pycache)
-        delete(entry_pycache)
+        if _global:
+            delete(uninstaller_path)
+            delete(uninstaller_path.replace(".py", ".spec"))
+        if entry_parent:
+            entry_pycache = join(entry_parent, pycache)
+            delete(entry_pycache, False)
         if replace_pipfile:
             subprocess.run(["pipenv", "--rm"])
             log("Reconstructing original virtual environment...")
@@ -186,6 +232,9 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             log("Removing pipenv")
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
+        if _global:
+            log(f"Added {source} to PATH. Restart shell for changes to take effect")
+
 
 if __name__ == "__main__":
     cli(prog_name="freez")
