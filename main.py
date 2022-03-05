@@ -11,7 +11,7 @@ import vendor.click as click
 
 join: Callable[[str, str], str] = lambda x, y: os.path.join(x, y).replace("\\", "/")
 join3: Callable[[str, str, str], str] = lambda x, y, z: join(join(x, y), z)
-winpath: Callable[[str], str] = lambda x: '"' + x.replace("/", "\\") + '"'
+winpath: Callable[[str], str] = lambda x: x.replace("/", "\\")
 
 WINDOWS = "Windows"
 
@@ -59,7 +59,7 @@ def delete(path: str, file: bool = True):
 
 
 @click.command()
-@click.version_option("1.5.2")
+@click.version_option("1.5.3")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
