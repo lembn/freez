@@ -1,3 +1,4 @@
+import ctypes
 import re
 import subprocess
 import os
@@ -17,14 +18,20 @@ WINDOWS = "Windows"
 SRC_KEY = "__SOURCE__"
 WIN_UNINSTALLER_SCRIPT = f"""\
 import winreg
+import ctypes
 reg_key = "Environment"
 reg_subkey = "Path"
 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
     reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
     if '{SRC_KEY}' in reg_val:
-        reg_val = reg_val.replace('{SRC_KEY};', "")
+        reg_val = reg_val.replace('{SRC_KEY}', "")
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
             winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+HWND_BROADCAST = 0xFFFF
+WM_SETTINGCHANGE = 0x1A
+SMTO_ABORTIFHUNG = 0x0002
+result = ctypes.c_long()
+ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, u"Environment", SMTO_ABORTIFHUNG, 5000, ctypes.byref(result),)
 print("Uninstalled.")
 """
 
@@ -52,7 +59,7 @@ def delete(path: str, file: bool = True):
 
 
 @click.command()
-@click.version_option("1.5.1")
+@click.version_option("1.5.2")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-o",
@@ -77,7 +84,8 @@ def delete(path: str, file: bool = True):
 )
 def cli(entry: str, output: str, name: str, _global: bool) -> None:
     """
-    Create single-file executables from python scripts.
+    Create single-file executables from python scripts. Intergrated terminals
+    in certain programs may have to be restarted for changes to take effect.
 
     \b
     ENTRY: The entry point script of the program being built.
@@ -157,21 +165,28 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
                 reg_subkey = "Path"
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_READ) as reg_handle:
                     reg_val, _ = winreg.QueryValueEx(reg_handle, reg_subkey)
-                    if source not in reg_val:
-                        reg_val += winpath(source) + ";"
-                        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
-                            winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+                    source = winpath(source) + ";"
+                    if source in reg_val:
+                        reg_val = reg_val.replace(source, "")
+                    reg_val += source
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, access=winreg.KEY_SET_VALUE) as reg_handle:
+                        winreg.SetValueEx(reg_handle, reg_subkey, 0, winreg.REG_EXPAND_SZ, reg_val)
+                HWND_BROADCAST = 0xFFFF
+                WM_SETTINGCHANGE = 0x1A
+                SMTO_ABORTIFHUNG = 0x0002
+                result = ctypes.c_long()
+                ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, u"Environment", SMTO_ABORTIFHUNG, 5000, ctypes.byref(result),)
             else:
                 with open(f"etc/profile.d/{name}.sh", "w") as f:
                     f.write(f"$PATH:{source}")
             log("Installed.")
             log("Creating uninstaller...")
             print()
-            uninstaller_path = join(output, f"{name}-uninstaller.py")
+            uninstaller_path = join(output, f"{name}-uninstall.py")
             with open(uninstaller_path, "w") as f:
-                    f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, winpath(source))
-                            if platform.system() == WINDOWS
-                            else UNIX_UNINSTALLER_SCRIPT.replace(SRC_KEY, source))
+                f.write(WIN_UNINSTALLER_SCRIPT.replace(SRC_KEY, source.replace("\\", "\\\\"))
+                    if platform.system() == WINDOWS
+                    else UNIX_UNINSTALLER_SCRIPT.replace(SRC_KEY, source))
             subprocess.run(
                 [
                     "pipenv",
@@ -217,6 +232,8 @@ def cli(entry: str, output: str, name: str, _global: bool) -> None:
             log("Removing pipenv")
             subprocess.run(["pip3", "uninstall", "-y", "pipenv"])
         log("Build successful.", colour="green")
+        if _global:
+            log(f"Added {source} to PATH. Restart shell for changes to take effect")
 
 
 if __name__ == "__main__":

@@ -19,7 +19,8 @@ PyInstaller will fail if you try to build a program that uses external dependenc
 ```
 Usage: [python] freez [OPTIONS] ENTRY
 
-  Create single-file executables from python scripts.
+  Create single-file executables from python scripts. Intergrated terminals
+  in certain programs may have to be restarted for changes to take effect.
 
   ENTRY: The entry point script of the program being built.
 
@@ -34,8 +35,6 @@ Options:
   --help                  Show this message and exit.
 ```
 
-> Global installations require 'sudo' on Unix.
-
 ## Installation
 
 Since `freez` is a python program, it can actually be used to install itself globally across the system:
@@ -44,11 +43,7 @@ Since `freez` is a python program, it can actually be used to install itself glo
 > cd freez
 > python main.py -g -n freez main.py
 > freez --version
-freez, version 1.4.0
+freez, version 1.5.2
 ```
 
-This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system.
-
-## TODO:
-
-- test uninstaller
+This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system. This also means that `freez` is now independent of Python, so python can be removed from this system if desired.
