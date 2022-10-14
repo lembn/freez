@@ -1,12 +1,10 @@
 # freez
+> *Create executables from interpreted language programs on any minimally configured system.*
 
-Create single-file executables from python programs ony any python-running system. `freez` takes the entry point script for a program and freezes the entire program it into a single-file executable using [PyInstaller](https://github.com/pyinstaller/pyinstaller). `freez` has no external dependencies, so can be used on any system with a python interpreter and can build any python program, regardless of the dependencies within it. `freez` requries an internet connection to build programs so that dependencies can be fetched from external locations. `freez` uses to freeze programs, providing the main functionality of the program.
 
-> The entry point script of the program being built should be away from the `freez` directory.
+`freez` takes an entry point script for a program and freezes the entire program into an executable file. `freez` has dependency resolution built in, so can be used on any system with a python interpreter' and can build any intepreted program, regardless of the dependencies within it.
 
-## Why not use normal PyInstaller?
-
-PyInstaller will fail if you try to build a program that uses external dependencies which you do not have installed on your system. All `freez` does is collect these dependencies and install them into a virtual environment, allowing PyInstaller to build in that environment and also allowing the installed dependencies to be easily cleaned off the system as if they were never there. This way any python program can be built into an executable from it's source code without the build machine having any of the program's dependencies pre-installed.
+> ***NOTE:** Intergrated terminals in certain programs may have to be restarted for changes to take effect.*
 
 ## Requirements
 
@@ -17,33 +15,41 @@ PyInstaller will fail if you try to build a program that uses external dependenc
 ## Usage
 
 ```
-Usage: [python] freez [OPTIONS] ENTRY
+Usage: freez [OPTIONS] ENTRY COMMAND [ARGS]...
 
-  Create single-file executables from python scripts. Intergrated terminals
+  Create executables from interpreted language programs. Intergrated terminals
   in certain programs may have to be restarted for changes to take effect.
 
   ENTRY: The entry point script of the program being built.
 
 Options:
-  -o, --output DIRECTORY  Output folder of the built executable.  [default:
-                          ./]
-  -n, --name TEXT         Name of the built executable (defaults to name of
-                          entry point script).
-  -g, --global            Install the executable into the python script path
-                          to make it globally accessible across the system
-                          (this will ignore the path set by --output).
-  --help                  Show this message and exit.
+  --version        Show the version and exit.
+  -g, --global     A flag representing if a global launch script should be
+                   created for the executable.
+  -n, --name TEXT  Name of the executable bundle (defaults to name of entry
+                   point script).
+  --help           Show this message and exit.
+
+Commands:
+  setup  Setup the Freez environment and launcher.
 ```
 
 ## Installation
 
-Since `freez` is a python program, it can actually be used to install itself globally across the system:
+# TODO: should we make `src` a module or should they have to cd into it to access the modules inside?
+First, setup `freez` on your system:
 
 ```
 > cd freez
-> python main.py -g -n freez main.py
+> python -m src.setup setup
+
+This will setup
+
 > freez --version
 freez, version 1.5.2
 ```
 
 This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system. This also means that `freez` is now independent of Python, so python can be removed from this system if desired.
+
+#### **Cross-Platform**
+`freez` builds exectuables for the system it was called from, so for cross-platform systems (for example WSL workflows), it's recommended **not** to build `freez` but instead run it from source through the python intepreter to prevent having to simultansously maintain multiple installations across platforms.
