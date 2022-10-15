@@ -1,4 +1,4 @@
-import utils
+from ... import utils
 
 
 class Freezer:
@@ -6,7 +6,7 @@ class Freezer:
         self.name = name
         self.__cleanup_paths: list[str] = []
 
-    def freeze(self, entry: str) -> None:
+    def freeze(self, entry: str, output: str) -> None:
         pass
 
     def cleanup(self) -> None:

@@ -1,3 +1,4 @@
 #!/bin/bash
 
-"INSERT_FREEZ_PATH/bin/python" "INSERT_FREEZ_PATH/src/freez/__main__.py" "${@:1}"
+PYTHONPATH="INSERT_FREEZ_PATH"
+"INSERT_FREEZ_PATH/bin/python" -m src.freez "${@:1}"

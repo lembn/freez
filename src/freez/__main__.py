@@ -1,18 +1,16 @@
-import os
-import sys
 from typing import Optional
 
 import click
 
-sys.path.append(os.path.dirname(sys.path[0]))
+from . import commands
 
-
-import commands
+# TODO: create uninstall command
+# TODO: ^ v.2.2.0
 
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.version_option("2.0.0")
+@click.version_option("2.1.0")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-n",

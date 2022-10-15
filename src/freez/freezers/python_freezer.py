@@ -3,12 +3,12 @@ import os
 import shutil
 from typing import Callable
 
-from freezers import freezer
-import utils
+from . import freezer
+from ... import utils
 
 
 class PythonFreezer(freezer.Freezer):
-    def freeze(self, entry: str):
+    def freeze(self, entry: str, output: str):
         venv_name = f"build"
         self._add_cleanup_path(venv_name)
 
@@ -52,7 +52,7 @@ class PythonFreezer(freezer.Freezer):
                 venv_path_prefix("pyinstaller"),
                 "--onedir",
                 "--distpath",
-                utils.general.app_path(),
+                output,
                 "--name",
                 self.name,
                 os.path.join(venv_src, os.path.basename(entry)),

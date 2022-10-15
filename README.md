@@ -1,23 +1,40 @@
 # freez
-> *Create executables from interpreted language programs on any minimally configured system.*
+> *Build executables from interpreted language programs.*
 
 
-`freez` takes an entry point script for a program and freezes the entire program into an executable file. `freez` has dependency resolution built in, so can be used on any system with a python interpreter' and can build any intepreted program, regardless of the dependencies within it.
-
-> ***NOTE:** Intergrated terminals in certain programs may have to be restarted for changes to take effect.*
+`freez` takes an entry point script for a program and freezes the entire program into an executable file. `freez` has automatic dependency resolution built in, so can be used on any system with a python interpreter and can build any intepreted program, regardless of the dependencies within it.
 
 ## Requirements
-
 - Python >= 3.6
-- Pip must be in the system `PATH`
-- \*MacOS **only\***: Comamnd Line tools for Mac
+- *MacOS **only***: Comamnd Line tools for Mac
+
+## Initialisation
+All you need to do to get running is, clone the `freez` repository, then initialise `freez` on your system:
+
+```
+> git clone https://www.github.com/thendg/freez.git
+> cd freez
+> python -m src.init
+```
+
+This final command will output a the path to the freez `apps` directory, where `freez` itself (and all the executables built by it) can be accessed. If you add this directory path to your system's PATH environment variable, you'll be able to globally execute `freez` (and all the executables built by it) from anywhere on your system. After doing this you can restart your shell and run `freez --version`  to test the installation. At this point `freez` is still dependent on the installed Python environment, but can be invoked by it's name `freez` from anywhere on the system (and the launcher will figure out the rest).
+
+#### **Installation**
+If you so desire, you could even get `freez` to *build and install itself*, with:
+
+```
+> git clone https://www.github.com/thendg/freez.git
+> cd freez
+> python -m src.freez -n freez "src/freez/__main__.py"
+```
+
+However, this will build `freez` as an executable specific to the build system so, for cross-platform systems (for example WSL workflows), it's recommended **not** to do this. Since the launcher runs `freez` inside the currently installed Python environment, `freez` is actually cross-platform in it's default configuration since the execution process is delegated to the Python executable.
 
 ## Usage
-
 ```
 Usage: freez [OPTIONS] ENTRY COMMAND [ARGS]...
 
-  Create executables from interpreted language programs. Intergrated terminals
+  Create executables from interpreted language programs. Intergrated shells
   in certain programs may have to be restarted for changes to take effect.
 
   ENTRY: The entry point script of the program being built.
@@ -34,22 +51,16 @@ Commands:
   setup  Setup the Freez environment and launcher.
 ```
 
-## Installation
+## How does it work?
+Good question. Organisationally, the `freez` project is split into three Python packages, all located in the `src` subdirectory.
 
-# TODO: should we make `src` a module or should they have to cd into it to access the modules inside?
-First, setup `freez` on your system:
+#### **`init`**
+The `init` package is used when initialising `freez`. This package is invoked as a module and contains the code required to setup `freez` and its dependencies on a system. 
 
-```
-> cd freez
-> python -m src.setup setup
+#### **`freez`**
+The `freez` package contains the actual `freez` application. This package is split into two sub-packages. `commands` contains the logic for the commands used by the `freez` application, `freezers` is a suite of *"freezer classes"* that can be used to build applications.
 
-This will setup
+A "**freezer classes**" is a Python class defining some methods that describe how a source repository should be "frozen" into an executable. More infomration can be found on them [here](src/freez/freezers/README.md)
 
-> freez --version
-freez, version 1.5.2
-```
-
-This builds `freez` as an executable, meaning it can be run without invoking `python` anywhere on the system. This also means that `freez` is now independent of Python, so python can be removed from this system if desired.
-
-#### **Cross-Platform**
-`freez` builds exectuables for the system it was called from, so for cross-platform systems (for example WSL workflows), it's recommended **not** to build `freez` but instead run it from source through the python intepreter to prevent having to simultansously maintain multiple installations across platforms.
+#### **`utils`**
+The `utils` package contains utilities used across the other packages.

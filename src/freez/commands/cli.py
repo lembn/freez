@@ -3,8 +3,8 @@ from typing import Type
 
 import click
 
-import utils
-import freezers
+from ... import utils
+from .. import freezers
 
 FREEZERS: dict[str, Type[freezers.Freezer]] = {"py": freezers.PythonFreezer}
 
@@ -17,7 +17,7 @@ def cli(entry: str, name: str) -> None:
         print()
         click.secho(f"[[ FREEZ ]]", bold=True, fg="blue", blink=True)
 
-        freezer.freeze(os.path.abspath(entry))
+        freezer.freeze(os.path.abspath(entry), utils.general.app_path())
         freezer.install()
     except KeyboardInterrupt:
         utils.logging.log("Stopped.", message_type="WARNING")
