@@ -3,6 +3,8 @@ import subprocess
 
 from .. import utils
 
+# TODO: launcher scripts have changed so check that they still work
+
 if __name__ == "__main__":
     print("Initialising Freez environment")
     subprocess.run(["python", "-m", "venv", "."])

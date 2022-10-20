@@ -10,7 +10,7 @@ from . import commands
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.version_option("2.1.0")
+@click.version_option("2.1.1")
 @click.argument("entry", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "-n",

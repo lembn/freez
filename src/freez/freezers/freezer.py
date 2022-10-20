@@ -14,11 +14,14 @@ class Freezer:
         launcher_path = utils.general.app_path(self.name + utils.platform.SCRIPT_EXT)
 
         with open(launcher_path, "w") as file:
-            launcher_script = utils.general.app_path(
-                self.name,
-                self.name,
+            file.write(
+                utils.general.app_path(
+                    self.name,
+                    self.name,
+                )
             )
-            file.write(launcher_script)
+            file.write(" ")
+            file.write("${@:1}" if utils.platform.IS_POSIX else "%*")
         utils.logging.log("Installation complete.", color="green")
 
     def cleanup(self) -> None:
