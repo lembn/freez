@@ -9,10 +9,6 @@ class Freezer:
     def freeze(self, entry: str, output: str) -> None:
         pass
 
-    def cleanup(self) -> None:
-        for path in self.__cleanup_paths:
-            utils.general.delete(path)
-
     def install(self) -> None:
         utils.logging.log("Installing...")
         launcher_path = utils.general.app_path(self.name + utils.platform.SCRIPT_EXT)
@@ -24,6 +20,10 @@ class Freezer:
             )
             file.write(launcher_script)
         utils.logging.log("Installation complete.", color="green")
+
+    def cleanup(self) -> None:
+        for path in self.__cleanup_paths:
+            utils.general.delete(path)
 
     def _add_cleanup_path(self, path: str) -> None:
         if not self.__cleanup_paths:
